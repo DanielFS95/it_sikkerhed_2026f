@@ -5,60 +5,141 @@ Dette er et skole projekt på Zealand Næstved
 
 <img width="1548" height="501" alt="image" src="https://github.com/user-attachments/assets/62760804-0999-487c-9868-38be83ec41ff" />
 
-# Teststrategier & Security Gates
+# Case: Sikker Brugerstyring og Password-validering
 
-Denne besvarelse beskriver sikkerhedsvalidering af et **Kommentar-modul**.  
-Formålet er at sikre korrekt datahåndtering og forhindre ondsindet input gennem systematiske testteknikker.
+Dette eksempel tager udgangspunkt i et system, hvor brugere kan oprette en profil, logge ind og tildeles rettigheder via **Role-Based Access Control (RBAC)**.  
+Fokus er på sikker input-validering, korrekt adgangskontrol og robust teststrategi.
 
-## Strategisk Overblik: Testpyramiden
+---
 
-Projektet anvender **Testpyramiden** som overordnet teststrategi for at sikre en effektiv og hurtig testindsats:
+## 1. Ækvivalensklasser (Equivalence Partitioning)
+
+Input opdeles i grupper, der forventes at blive behandlet ens af systemet.
+
+### Password-validering
+
+- **Gyldige klasser**
+  - Passwords på **8–20 tegn**
+  - Indeholder både **bogstaver og tal**
+  - (Evt. specialtegn, hvis det er et krav)
+
+- **Ugyldige klasser**
+  - Passwords under 8 tegn
+  - Passwords over 20 tegn
+  - Passwords uden påkrævede tegn (fx specialtegn)
+
+**Sikkerhedsperspektiv:**  
+Sikrer at valideringslogikken konsekvent afviser svage passwords og reducerer risikoen for brute-force og credential stuffing.
+
+---
+
+## 2. Grænseværditest (Boundary Value Analysis)
+
+De kritiske grænser for password-længde testes systematisk.
+
+| Længde | Forventet resultat |
+|------|-------------------|
+| 7    | Afvis |
+| 8    | Accepter |
+| 9    | Accepter |
+| 19   | Accepter |
+| 20   | Accepter |
+| 21   | Afvis |
+
+**Sikkerhedsperspektiv:**  
+Forhindrer *off-by-one* fejl, som kan tillade for korte (usikre) passwords eller forårsage fejl ved ekstremt lange input.
+
+---
+
+## 3. CRUD(L) – Brugerkontoens livscyklus
+
+Vi tester hele livscyklussen for en brugerkonto med fokus på adgangskontrol.
+
+- **Create**  
+  Opret bruger med sikkert hashed password (fx bcrypt / Argon2).
+
+- **Read**  
+  Brugeren må kun kunne se egne profiloplysninger.
+
+- **Update**  
+  Ændring af password kræver verificering med det gamle password.
+
+- **Delete**  
+  Sletning af konto understøtter GDPR (*Right to be Forgotten*).
+
+- **List**  
+  Oversigt over brugere er kun tilgængelig for brugere med admin-rolle.
+
+---
+
+## 4. Decision Table Test (Adgangskontrol ved login)
+
+Decision tables anvendes til at teste login-logik baseret på flere samtidige betingelser.
+
+| Betingelse            | Forsøg 1 | Forsøg 2 | Forsøg 3 |
+|----------------------|----------|----------|----------|
+| Korrekt password     | Nej      | Nej      | Ja       |
+| Antal fejl < 5       | Ja       | Nej      | Ja       |
+| **Handling**         | Fejlbesked | Lås konto | Log ind |
+
+**Sikkerhedsperspektiv:**  
+Reducerer risikoen for brute-force angreb og sikrer korrekt kontolåsning.
+
+---
+
+## 5. Cycle Process Test (State Transition)
+
+Test af brugerens tilstand og tilladte overgange i systemet.
+
+### Bruger-tilstande
+
+- **Start:** Uregistreret
+- **Handling:** Tilmelding → Afventer e-mail-verifikation
+- **Handling:** Verifikation → Aktiv bruger
+- **Handling:** 5 forkerte loginforsøg → Låst konto
+
+**Sikkerhedsperspektiv:**  
+Sikrer at brugeren ikke kan omgå verifikation eller hoppe direkte til en aktiv konto.
+
+---
+
+## 6. Testpyramiden
+
+Sikkerhedstests fordeles efter Testpyramiden for optimal effektivitet.
 
 - **Unit Tests (Bunden)**  
-  Størstedelen af testene ligger her. Unit tests verificerer meget hurtigt (1–10 ms), at farlige tegn bliver fjernet eller korrekt omkodet i koden.
+  Hurtige tests af hashing-algoritmer og input-validering.
 
 - **Integration Tests (Midten)**  
-  Sikrer at kommentarer gemmes korrekt i databasen og kan hentes igen uden datatab eller ændringer.
+  Test af databaseintegration, korrekt lagring af brugere og korrekt udstedelse af JWT-tokens.
 
-- **End-to-End Tests (Toppen)**  
-  Færre, men vigtige tests, der kontrollerer hele brugerrejsen i UI’en – fra afsendelse af kommentar til korrekt visning.
+- **E2E / UI Tests (Toppen)**  
+  Manuel eller automatiseret test af hele login-flowet i browseren.
 
-## Security Gates & Testteknikker
+---
 
-Implementeringen følger en række **security gates**, der reducerer risiko gennem hele udviklingsforløbet.
+## Security Gates (DevSecOps)
 
-### 1. Code / Dev Security Gate (Det tekniske fundament)
+Testene placeres strategisk i CI/CD-pipelinen som **Security Gates**.
 
-Fokus på input-validering og overholdelse af kodestandarder.
+### Commit / Build Gate (Static)
 
-- **Ækvivalensklasser**  
-  Input opdeles i logiske grupper for at identificere forskelle, f.eks. almindelig tekst versus input med kodesymboler.
+- Unit tests og grænseværditests
+- Statisk analyse for:
+  - Hardcoded secrets
+  - Svage kryptografiske mønstre
 
-- **Grænseværdistest**  
-  Kommentarens længde testes ved definerede grænser (fx maks. 500 tegn) ved at afprøve værdier lige under, præcis på og lige over grænsen.
+### Test / Staging Gate (Dynamic)
 
-### 2. Integration Security Gate (Forbindelsen)
+- Automatiserede integrationstests (DAST)
+- Decision table tests
+- Cycle process tests
+- Verifikation af CRUD(L)-rettigheder  
+  (fx at en almindelig bruger ikke kan liste alle brugere)
 
-Sikring af korrekt kommunikation mellem komponenter samt korrekt autorisation.
+### Release Gate
 
-- **CRUD(L)**  
-  Verificering af de grundlæggende dataoperationer: Create, Read, Update, Delete og List.
+- Endelig penetrationstest eller manuel sikkerhedsaudit
+- Gennemgang af adgangskontrol før produktion
 
-### 3. System Security Gate (Logik & Flow)
-
-Test af forretningslogik og systemets samlede robusthed.
-
-- **Decision Table Test**  
-  Test af rettighedsstyring, f.eks. hvem der må redigere eller slette kommentarer baseret på roller og regler.
-
-- **Cycle Process Test**  
-  Systemets stabilitet testes ved gentagne driftscyklusser for at sikre, at ydeevne og funktionalitet ikke degraderes over tid.
-
-## Programmering: Datadrevet Unit Test (PyTest)
-
-I overensstemmelse med **LEG-arbejdsmetoden** anvendes datadrevne unit tests for at sikre læsbarhed og systematisk testdækning.
-
-Implementeringen findes i filen:
-
-```text
-tests/test_comments.py
+---
