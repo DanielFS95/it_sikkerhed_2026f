@@ -23,8 +23,6 @@ Projektet anvender **Testpyramiden** som overordnet teststrategi for at sikre en
 - **End-to-End Tests (Toppen)**  
   Færre, men vigtige tests, der kontrollerer hele brugerrejsen i UI’en – fra afsendelse af kommentar til korrekt visning.
 
-> Visualiseret gennem den klassiske *Software Testing Pyramid*.
-
 ## Security Gates & Testteknikker
 
 Implementeringen følger en række **security gates**, der reducerer risiko gennem hele udviklingsforløbet.
