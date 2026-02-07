@@ -5,58 +5,62 @@ Dette er et skole projekt på Zealand Næstved
 
 <img width="1548" height="501" alt="image" src="https://github.com/user-attachments/assets/62760804-0999-487c-9868-38be83ec41ff" />
 
-# Opgave: Teststrategier & Security Gates
-Denne besvarelse dækker sikkerhedsvalidering af et **Kommentar-modul**. [cite_start]Målet er at sikre korrekt datahåndtering og forhindre ondsindet input gennem systematiske testteknikker[cite: 1, 115].
+# Teststrategier & Security Gates
 
-## 🏗️ Strategisk Overblik: Test Pyramiden
-[cite_start]Vi anvender **Test Pyramiden** som vores styrende strategi for at sikre en effektiv og hurtig testindsats[cite: 148, 216]:
+Denne besvarelse beskriver sikkerhedsvalidering af et **Kommentar-modul**.  
+Formålet er at sikre korrekt datahåndtering og forhindre ondsindet input gennem systematiske testteknikker.
 
-* **Unit Tests (Bunden):** Her ligger flest tests. [cite_start]De verificerer lynhurtigt (1-10ms), om "farlige" tegn bliver fjernet eller omkodet korrekt i koden[cite: 154, 155].
-* [cite_start]**Integration Tests (Midten):** Verificerer at kommentarerne gemmes sikkert i databasen og hentes ud igen uden datatab[cite: 152, 153].
-* [cite_start]**End-to-End Tests (Toppen):** Færre, men vigtige tests, der tjekker hele brugerrejsen i UI'en fra afsendelse til visning[cite: 149, 157, 160].
+## Strategisk Overblik: Testpyramiden
 
+Projektet anvender **Testpyramiden** som overordnet teststrategi for at sikre en effektiv og hurtig testindsats:
 
+- **Unit Tests (Bunden)**  
+  Størstedelen af testene ligger her. Unit tests verificerer meget hurtigt (1–10 ms), at farlige tegn bliver fjernet eller korrekt omkodet i koden.
 
-## 🛡️ Security Gates & Test Teknikker
-[cite_start]Implementeringen følger en række "gates" for at minimere risici gennem hele udviklingsforløbet[cite: 171, 173].
+- **Integration Tests (Midten)**  
+  Sikrer at kommentarer gemmes korrekt i databasen og kan hentes igen uden datatab eller ændringer.
+
+- **End-to-End Tests (Toppen)**  
+  Færre, men vigtige tests, der kontrollerer hele brugerrejsen i UI’en – fra afsendelse af kommentar til korrekt visning.
+
+> Visualiseret gennem den klassiske *Software Testing Pyramid*.
+
+## Security Gates & Testteknikker
+
+Implementeringen følger en række **security gates**, der reducerer risiko gennem hele udviklingsforløbet.
 
 ### 1. Code / Dev Security Gate (Det tekniske fundament)
-[cite_start]Fokus på input-validering og kodestandarder[cite: 172, 175].
 
-* [cite_start]**Ækvivalens klasser:** Vi opdeler input i logiske grupper for at kategorisere forskelle:[cite: 78, 212]:
-    * **Gyldige:** Almindelig tekst (f.eks. "Godt indlæg!").
-    * [cite_start]**Ugyldige:** HTML/Scripts (f.eks. `<script>`) – Skal blokeres for at undgå XSS-angreb[cite: 176].
-* [cite_start]**Grænseværdi test:** Vi tester grænserne for kommentarens længde (f.eks. maks 500 tegn)[cite: 84, 108, 213]:
-    * [cite_start]**499 tegn:** Skal tillades (lige under)[cite: 87, 113].
-    * [cite_start]**500 tegn:** Skal tillades (lige på)[cite: 88, 113].
-    * [cite_start]**501 tegn:** Skal afvises (lige over)[cite: 89, 113].
+Fokus på input-validering og overholdelse af kodestandarder.
+
+- **Ækvivalensklasser**  
+  Input opdeles i logiske grupper for at identificere forskelle, f.eks. almindelig tekst versus input med kodesymboler.
+
+- **Grænseværdistest**  
+  Kommentarens længde testes ved definerede grænser (fx maks. 500 tegn) ved at afprøve værdier lige under, præcis på og lige over grænsen.
 
 ### 2. Integration Security Gate (Forbindelsen)
-[cite_start]Sikring af sikker kommunikation og korrekt autorisation[cite: 183, 184].
 
-* [cite_start]**CRUD(L):** Verificering af de grundlæggende dataoperationer[cite: 114, 214]:
-    * [cite_start]**Create (C):** Oprettelse af en ny kommentar knyttet til den rigtige bruger[cite: 116].
-    * [cite_start]**Read (R):** Visning af kommentaren uden at eksponere sensitive data[cite: 117].
-    * [cite_start]**Update (U):** Kun ejeren må kunne ændre i kommentaren[cite: 118].
-    * [cite_start]**Delete (D):** Sikker sletning fra både UI og database[cite: 119].
+Sikring af korrekt kommunikation mellem komponenter samt korrekt autorisation.
+
+- **CRUD(L)**  
+  Verificering af de grundlæggende dataoperationer: Create, Read, Update, Delete og List.
 
 ### 3. System Security Gate (Logik & Flow)
-[cite_start]Her tester vi forretningslogikken og systemets modstandsdygtighed[cite: 172, 188].
 
-* [cite_start]**Decision Table Test:** Logik for rettighedsstyring[cite: 138, 217]:
-    | Er bruger logget ind? | Egen kommentar? | Admin-rolle? | Handling/Resultat |
-    | :--- | :--- | :--- | :--- |
-    | Nej | - | - | Kan kun læse |
-    | Ja | Ja | Nej | [cite_start]Kan redigere/slette [cite: 140] |
-    | Ja | Nej | Ja | Kan slette (moderation) [cite: 140] |
-* **Cycle Process Test:** Vi tester systemets stabilitet ved at lade en proces køre gentagne cyklusser for at sikre, at ydeevnen ikke falder over tid[cite: 121, 122, 215].
+Test af forretningslogik og systemets samlede robusthed.
 
----
+- **Decision Table Test**  
+  Test af rettighedsstyring, f.eks. hvem der må redigere eller slette kommentarer baseret på roller og regler.
 
-## 💻 Programmering: Data-dreven Unit Test (PyTest)
-[cite_start]I overensstemmelse med "Leg"-arbejdsmetoden er her en læsbar datadreven test[cite: 222, 223]. Se filen `test_comments.py`.
+- **Cycle Process Test**  
+  Systemets stabilitet testes ved gentagne driftscyklusser for at sikre, at ydeevne og funktionalitet ikke degraderes over tid.
 
----
+## Programmering: Datadrevet Unit Test (PyTest)
 
-## 💻 Programmering: Data-dreven Unit Test (PyTest)
-[cite_start]I overensstemmelse med opgaven er her en læsbar datadreven test, der dækker både grænseværdier og logik[cite: 222, 223]. Se filen `test_comments.py`.
+I overensstemmelse med **LEG-arbejdsmetoden** anvendes datadrevne unit tests for at sikre læsbarhed og systematisk testdækning.
+
+Implementeringen findes i filen:
+
+```text
+tests/test_comments.py
